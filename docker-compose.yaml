@@ -1,0 +1,17 @@
+services:
+  bot:
+    build:
+      context: .
+      target: runtime
+    init: true
+    restart: unless-stopped
+    environment:
+      DISCORD_TOKEN: ${DISCORD_TOKEN:?Defina DISCORD_TOKEN no arquivo .env}
+      DISCORD_TEST_GUILD_ID: ${DISCORD_TEST_GUILD_ID:-}
+      DATABASE_PATH: /app/data/dailyveiga.db
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - dailyveiga-data:/app/data
+
+volumes:
+  dailyveiga-data:

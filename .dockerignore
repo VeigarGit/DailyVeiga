@@ -1,0 +1,16 @@
+.git
+.gitignore
+.env
+.env.*
+.venv
+data
+*.db
+*.db-shm
+*.db-wal
+__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+*.egg-info
+build
+dist

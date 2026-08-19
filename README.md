@@ -18,12 +18,13 @@ do serviço DailyBot.
 
 ## Requisitos
 
-- Python 3.11 ou superior; ou Docker.
+- Docker Engine com o plugin Docker Compose.
 - Uma aplicação criada no Discord Developer Portal.
 - O **Server Members Intent** habilitado na página `Bot` da aplicação, pois o
   DailyVeiga precisa descobrir os integrantes do cargo configurado.
 
 O bot não usa o Message Content Intent e não lê as conversas do servidor.
+Python, `pip`, `venv` e SQLite não precisam estar instalados na VM.
 
 ## Configuração da aplicação no Discord
 
@@ -35,37 +36,70 @@ O bot não usa o Message Content Intent e não lê as conversas do servidor.
    `Read Message History` e `Use Application Commands`.
 5. Use a URL gerada para adicionar o bot ao servidor.
 
-## Execução local
+## Implantação na VM
+
+Na primeira implantação, crie o arquivo de configuração a partir do exemplo:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
 cp .env.example .env
 ```
 
-Edite `.env`, carregue as variáveis e execute:
+Edite `.env` e preencha `DISCORD_TOKEN` com o token da aplicação. Essa é a única
+preparação exigida pelo bot. O arquivo é ignorado pelo Git e pelo contexto de
+build, portanto o token não é incorporado à imagem.
+
+Depois, construa e inicie todo o projeto com um único comando:
 
 ```bash
-set -a
-source .env
-set +a
-dailyveiga
+docker compose up --build -d
 ```
 
 Durante o desenvolvimento, informe `DISCORD_TEST_GUILD_ID` para registrar os
 comandos imediatamente apenas no servidor de teste. Sem essa variável, os
 comandos são registrados globalmente e podem levar algum tempo para aparecer.
 
-## Execução com Docker
+O build instala todas as dependências e executa a suíte de testes antes de criar
+a imagem final. Se um teste falhar, o serviço não é atualizado.
+
+## Operação
+
+Consulte o estado e acompanhe os logs com:
 
 ```bash
-cp .env.example .env
-docker compose up -d --build
-docker compose logs -f
+docker compose ps
+docker compose logs -f bot
 ```
 
-O banco fica no volume `./data`. Faça backup desse diretório regularmente.
+Depois de atualizar o código, o mesmo comando reconstrói e recria apenas o que
+for necessário:
+
+```bash
+docker compose up --build -d
+```
+
+Para parar e remover o contêiner sem apagar os dados:
+
+```bash
+docker compose down
+```
+
+## Persistência e backup
+
+O banco SQLite fica em um volume criado e nomeado automaticamente pelo Docker
+Compose conforme o nome do projeto. Reiniciar, reconstruir ou executar
+`docker compose down` não remove esse volume. Não use `docker compose down -v`
+a menos que queira apagar definitivamente as configurações, rodadas e respostas.
+
+Para gerar um backup consistente do banco no diretório atual da VM:
+
+```bash
+docker compose stop bot
+docker compose cp bot:/app/data/dailyveiga.db ./dailyveiga-backup.db
+docker compose start bot
+```
+
+A antiga pasta local `./data` não é montada nem enviada à imagem. Uma implantação
+nova na VM começa com um banco vazio no volume Docker.
 
 ## Primeiro uso
 
@@ -96,12 +130,6 @@ Para testar sem esperar o horário:
 /daily responder
 /daily status
 /daily fechar
-```
-
-## Desenvolvimento
-
-```bash
-python -m unittest discover -s tests -v
 ```
 
 ## Limitações atuais
